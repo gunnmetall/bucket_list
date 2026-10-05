@@ -1,0 +1,693 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Abhi’s Bucket List</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ---- Design plan ----
+   Subject: a personal life-goals journal, styled as a field notebook kept
+   on an expedition — not a SaaS dashboard.
+   Color: a three-hue duotone-plus-one (coral, azure, violet) over a pale
+   mesh-tinted paper by day, or deep plum-ink by night, switched by the
+   reader's own toggle rather than the OS. Each tag gets its own hue so the
+   page carries color as information, not decoration.
+   Type: Fraunces (display, headings + lede italics), Public Sans (body/UI),
+         IBM Plex Mono (tabular counts + form controls).
+   Layout: left sticky index rail of category "stamps" + a long vertical
+           journal of entries; rail collapses to a horizontal sticky strip
+           on narrow screens.
+*/
+:root{
+  color-scheme: light;
+  --bg:#FAF9FC;
+  --panel:#FFFFFF;
+  --panel-2:#F1F1F8;
+  --text:#1C1F2B;
+  --muted:#6B7086;
+  --brass:#F0583D;
+  --teal:#0E6FAF;
+  --violet:#6D4FE0;
+  --warn:#D9641F;
+  --rule:rgba(28,31,43,.08);
+  --rule-strong:rgba(28,31,43,.18);
+  --shadow:rgba(28,31,43,.10);
+  --grad: linear-gradient(90deg, var(--teal), var(--violet), var(--brass));
+  --mesh:
+    radial-gradient(circle at 12% 8%, rgba(14,111,175,.12), transparent 42%),
+    radial-gradient(circle at 88% 18%, rgba(109,79,224,.10), transparent 40%),
+    radial-gradient(circle at 70% 90%, rgba(240,88,61,.11), transparent 45%);
+}
+:root[data-mode="dark"]{
+  color-scheme: dark;
+  --bg:#15121F;
+  --panel:#1E1A2C;
+  --panel-2:#272134;
+  --text:#F4F2FA;
+  --muted:#A199BE;
+  --brass:#FF7A64;
+  --teal:#4FB8FF;
+  --violet:#B9A3FF;
+  --warn:#FFB23D;
+  --rule:rgba(244,242,250,.12);
+  --rule-strong:rgba(244,242,250,.24);
+  --shadow:rgba(0,0,0,.4);
+  --mesh:
+    radial-gradient(circle at 12% 8%, rgba(79,184,255,.14), transparent 42%),
+    radial-gradient(circle at 88% 18%, rgba(185,163,255,.13), transparent 40%),
+    radial-gradient(circle at 70% 90%, rgba(255,122,100,.13), transparent 45%);
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  position:relative;
+  background:var(--bg);
+  color:var(--text);
+  margin:0;
+  padding-inline:0;
+  font-family:'Public Sans',system-ui,sans-serif;
+  font-size:15px;
+  line-height:1.5;
+  transition:background .25s ease, color .25s ease;
+}
+body::before{
+  content:"";
+  position:fixed; inset:0; z-index:-1;
+  background:var(--mesh);
+  pointer-events:none;
+}
+h1,h2{font-family:'Fraunces',Georgia,serif; text-wrap:balance; margin:0;}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums;}
+a{color:inherit;}
+
+/* reading progress */
+#scrollProgress{position:sticky; top:0; left:0; height:3px; width:0%; background:var(--grad); z-index:60; transition:width .1s linear;}
+
+/* ---------- hero ---------- */
+.hero{
+  position:relative;
+  padding:56px 20px 44px;
+  max-width:1040px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:28px 36px;
+  align-items:center;
+  overflow:hidden;
+}
+.compass{flex:0 0 auto; width:104px; height:104px; position:relative; z-index:1;}
+.compass svg{width:100%; height:100%; display:block;}
+.compass .needle{transform-origin:52px 52px; animation:settle 1.6s cubic-bezier(.17,.67,.3,1.1) both;}
+@keyframes settle{
+  0%{transform:rotate(145deg);}
+  60%{transform:rotate(-18deg);}
+  80%{transform:rotate(6deg);}
+  100%{transform:rotate(0deg);}
+}
+.hero-text{position:relative; z-index:1; min-width:0;}
+.hero h1{font-size:clamp(32px,5.4vw,50px); font-weight:600; color:var(--text); margin-top:6px;}
+.quote{font-style:italic; color:var(--muted); font-size:16.5px; max-width:54ch; margin:14px 0 0; font-family:'Fraunces',Georgia,serif; font-optical-sizing:auto; line-height:1.45;}
+.quote-attr{display:block; font-style:normal; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--teal); margin-top:8px; letter-spacing:.01em;}
+
+.gauge-row{display:flex; align-items:center; gap:22px; margin-top:24px; flex-wrap:wrap;}
+.gauge{flex:0 0 auto;}
+.gauge svg{display:block;}
+.gauge-stats{display:flex; flex-direction:column; gap:2px;}
+.gauge-num{font-size:26px; font-weight:600;}
+.gauge-label{font-size:12.5px; color:var(--muted);}
+
+.toolbar{margin-left:auto; display:flex; gap:8px; flex:0 0 auto;}
+.pill-btn{
+  background:var(--panel); border:1px solid var(--rule-strong);
+  color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:12px;
+  padding:7px 13px; border-radius:999px; cursor:pointer;
+  display:inline-flex; align-items:center; gap:7px;
+  transition:border-color .15s ease, color .15s ease, background .15s ease;
+}
+.pill-btn:hover{color:var(--text); border-color:var(--violet);}
+.pill-btn.active{color:var(--panel); background:var(--violet); border-color:var(--violet);}
+.pill-btn svg{width:13px; height:13px;}
+
+@media (prefers-reduced-motion: reduce){
+  .compass .needle{animation:none; transform:rotate(0deg);}
+}
+
+/* ---------- layout ---------- */
+.layout{
+  max-width:1040px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:200px 1fr;
+  gap:40px;
+  padding:0 20px 80px;
+  align-items:start;
+}
+.index-rail{
+  position:sticky; top:14px;
+  display:flex; flex-direction:column; gap:3px;
+  padding-top:6px;
+}
+.index-link{
+  display:flex; align-items:center; gap:10px;
+  padding:7px 10px; margin-inline:-10px;
+  border-radius:7px;
+  font-size:13px; color:var(--muted);
+  text-decoration:none;
+  border-left:2px solid transparent;
+}
+.index-link .ring{width:9px; height:9px; border-radius:50%; border:1.5px solid var(--muted); flex:0 0 auto;}
+.index-link.active{color:var(--text); border-left-color:var(--ring-color, var(--brass)); background:color-mix(in srgb, var(--ring-color, var(--brass)) 10%, transparent);}
+.index-link.active .ring{background:var(--ring-color, var(--brass)); border-color:var(--ring-color, var(--brass));}
+.index-link:hover{color:var(--text);}
+
+.journal{min-width:0; display:flex; flex-direction:column; gap:46px;}
+
+.cat-section{scroll-margin-top:16px;}
+.cat-head{display:flex; align-items:center; gap:16px; margin-bottom:18px;}
+.stamp{
+  flex:0 0 auto; width:56px; height:56px; border-radius:50%;
+  border:1.5px solid var(--ring-color, var(--brass));
+  background:var(--panel);
+  background:color-mix(in srgb, var(--ring-color, var(--brass)) 15%, var(--panel));
+  display:flex; align-items:center; justify-content:center;
+  color:var(--ring-color, var(--brass));
+  opacity:0; transform:scale(1.3) rotate(-10deg);
+  transition:opacity .5s cubic-bezier(.2,.7,.3,1), transform .5s cubic-bezier(.2,.7,.3,1);
+}
+.cat-section.in-view .stamp{opacity:1; transform:scale(1) rotate(0deg);}
+.stamp svg{width:30px; height:30px;}
+.cat-head h2{font-size:21px; font-weight:600; color:var(--text);}
+.cat-count{font-size:12.5px; color:var(--muted); margin-left:auto;}
+.cat-epigraph{font-style:italic; font-family:'Fraunces',Georgia,serif; color:var(--muted); font-size:14.5px; margin:-8px 0 16px 72px;}
+
+.entries{list-style:none; margin:0; padding:0; border-top:1px solid var(--rule);}
+.entry{
+  display:flex; align-items:flex-start; gap:12px;
+  padding:13px 2px 13px 13px;
+  border-bottom:1px solid var(--rule);
+  border-left:3px solid var(--ring-color, transparent);
+}
+.check{
+  flex:0 0 auto; width:21px; height:21px; margin-top:1px;
+  border-radius:5px; border:1.5px solid var(--rule-strong);
+  background:transparent; position:relative;
+  display:flex; align-items:center; justify-content:center;
+}
+.check svg{width:13px; height:13px; opacity:0; transform:scale(.4); transition:opacity .22s ease, transform .22s cubic-bezier(.3,1.6,.5,1);}
+.entry.done .check{background:var(--ring-color, var(--brass)); border-color:var(--ring-color, var(--brass));}
+.entry.done .check svg{opacity:1; transform:scale(1); color:var(--panel);}
+.entry-body{flex:1 1 auto; min-width:0;}
+.entry-text{font-size:14.5px; color:var(--text); display:block;}
+.entry.done .entry-text{color:var(--muted); text-decoration:line-through; text-decoration-color:var(--rule-strong);}
+.entry-meta{display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap;}
+
+.tag-chip{
+  --chip-color:var(--muted);
+  display:inline-flex; align-items:center; gap:5px;
+  padding:3px 9px; border-radius:999px;
+  font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+  color:var(--text);
+  background:var(--panel-2);
+  background:color-mix(in srgb, var(--chip-color) 16%, var(--panel-2));
+}
+.tag-chip .dot{width:6px; height:6px; border-radius:50%; flex:0 0 auto; background:var(--chip-color);}
+.tag-chip.quick{--chip-color:var(--teal);}
+.tag-chip.project{--chip-color:var(--violet);}
+.tag-chip.lifetime{--chip-color:var(--brass);}
+
+.deadline{font-size:11px; color:var(--muted); font-family:'IBM Plex Mono',monospace; padding-left:8px; border-left:1px solid var(--rule-strong);}
+.deadline.overdue{color:var(--warn);}
+
+/* ---------- edit mode ---------- */
+.entry.editing{align-items:center;}
+.edit-text{
+  width:100%; background:var(--panel-2); color:var(--text);
+  border:1px solid var(--rule-strong); border-radius:5px;
+  padding:7px 10px; font:inherit; font-size:14px;
+}
+.edit-meta{margin-top:7px; gap:8px;}
+.edit-tag, .edit-date, .add-tag, .add-date{
+  background:var(--panel-2); color:var(--text);
+  border:1px solid var(--rule-strong); border-radius:5px;
+  padding:6px 8px; font-family:'IBM Plex Mono',monospace; font-size:12px;
+}
+.del-btn{
+  flex:0 0 auto; background:none; border:none; color:var(--muted);
+  font-size:19px; line-height:1; padding:2px 6px; cursor:pointer;
+}
+.del-btn:hover{color:var(--warn);}
+.add-row{
+  display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+  margin-top:10px; padding:10px; border:1px dashed var(--rule-strong); border-radius:6px;
+}
+.add-text{
+  flex:1 1 170px; min-width:0; background:var(--panel-2); color:var(--text);
+  border:1px solid var(--rule-strong); border-radius:5px; padding:8px 10px; font:inherit; font-size:13.5px;
+}
+.add-row button[type=submit]{
+  flex:0 0 auto; background:var(--violet); color:#fff; border:none;
+  border-radius:5px; padding:8px 15px; font-weight:600; font-size:13px; cursor:pointer;
+}
+
+/* ---------- resources ---------- */
+.resources{border-top:1px solid var(--rule-strong); padding-top:30px;}
+.resources h2{font-size:21px; color:var(--text); margin-bottom:6px;}
+.resources .sub{color:var(--muted); font-size:13.5px; max-width:60ch; margin:0 0 18px;}
+.resource-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px;}
+.resource-card{
+  display:block; padding:14px 15px;
+  background:var(--panel);
+  border:1px solid var(--rule-strong);
+  border-top:3px solid var(--ring-color, var(--muted));
+  border-radius:8px;
+  box-shadow:0 1px 3px var(--shadow);
+  text-decoration:none; color:var(--text);
+  font-size:13.5px; min-width:0;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.resource-card:hover{transform:translateY(-2px); box-shadow:0 6px 16px var(--shadow);}
+.resource-card .r-cat{display:block; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ring-color, var(--muted)); margin-bottom:4px;}
+
+footer.note{max-width:1040px; margin:0 auto; padding:0 20px 60px; color:var(--muted); font-size:12.5px;}
+
+/* ---------- responsive ---------- */
+@media (max-width:760px){
+  .hero{grid-template-columns:1fr; text-align:left;}
+  .compass{width:72px; height:72px;}
+  .layout{grid-template-columns:1fr; gap:0;}
+  .index-rail{
+    position:sticky; top:0; z-index:40;
+    flex-direction:row; overflow-x:auto;
+    background:var(--bg); border-bottom:1px solid var(--rule);
+    padding:10px 20px; margin:0 -20px 30px; gap:14px;
+  }
+  .index-link{flex:0 0 auto; margin-inline:0; border-left:none; border-bottom:2px solid transparent; border-radius:0; padding:4px 2px;}
+  .index-link.active{border-left-color:transparent; border-bottom-color:var(--ring-color, var(--brass)); background:none;}
+  .toolbar{margin-left:0; margin-top:4px;}
+}
+@media (prefers-reduced-motion: reduce){
+  .stamp, .check svg, body, .resource-card{transition:none !important;}
+  html{scroll-behavior:auto;}
+}
+</style>
+
+<div id="scrollProgress"></div>
+
+<header class="hero">
+  <div class="compass">
+    <svg viewBox="0 0 104 104" fill="none">
+      <circle cx="52" cy="52" r="44" stroke="var(--rule-strong)" stroke-width="1.5"/>
+      <circle cx="52" cy="52" r="36" stroke="var(--rule)" stroke-width="1"/>
+      <g class="needle">
+        <path d="M52 20 L60 52 L52 84 L44 52 Z" fill="var(--brass)" opacity="0.9"/>
+        <circle cx="52" cy="52" r="4.5" fill="var(--panel)"/>
+      </g>
+      <text x="52" y="14" text-anchor="middle" fill="var(--muted)" font-size="8" font-family="IBM Plex Mono, monospace">N</text>
+    </svg>
+  </div>
+  <div class="hero-text">
+    <h1>Abhi’s Bucket List</h1>
+    <p class="quote">“The woods are lovely, dark and deep, but I have promises to keep, and miles to go before I sleep, and miles to go before I sleep.”<span class="quote-attr">— Robert Frost, Stopping by Woods on a Snowy Evening</span></p>
+    <div class="gauge-row">
+      <div class="gauge">
+        <svg width="96" height="58" viewBox="0 0 96 58">
+          <defs>
+            <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="var(--teal)"/>
+              <stop offset="0.5" stop-color="var(--violet)"/>
+              <stop offset="1" stop-color="var(--brass)"/>
+            </linearGradient>
+          </defs>
+          <path d="M6 54 A42 42 0 0 1 90 54" fill="none" stroke="var(--rule-strong)" stroke-width="7" stroke-linecap="round"/>
+          <path id="gaugeArc" d="M6 54 A42 42 0 0 1 90 54" fill="none" stroke="url(#gaugeGrad)" stroke-width="7" stroke-linecap="round" stroke-dasharray="132" stroke-dashoffset="132"/>
+        </svg>
+      </div>
+      <div class="gauge-stats">
+        <span class="gauge-num mono" id="doneCount">0 / 41</span>
+        <span class="gauge-label">entries stamped so far</span>
+      </div>
+      <div class="toolbar">
+        <button class="pill-btn" id="modeToggle" type="button">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path id="modeIcon" d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M3.5 12.5l1.4-1.4M11.1 4.9l1.4-1.4"/><circle id="modeIconSun" cx="8" cy="8" r="3.2"/></svg>
+          <span id="modeLabel">night mode</span>
+        </button>
+        <button class="pill-btn" id="editToggle" type="button">edit list</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="index-rail" id="indexRail"></nav>
+  <main class="journal" id="journal"></main>
+</div>
+
+<footer class="note">Tap an entry to stamp it done, or “edit list” to rewrite, tag, date, add or remove entries. Everything here lives in this browser only.</footer>
+
+<script>
+(function(){
+"use strict";
+
+var ICONS = {
+  adventure: '<path d="M6 24 16 8 22 18 27 11 34 24Z"/><path d="M27 11 24 16" />',
+  travel: '<circle cx="20" cy="20" r="13"/><path d="M25 14 18 20 15 26 22 20Z" fill="currentColor" stroke="none"/>',
+  skills: '<path d="M20 11S17 9 10 9v18c7 0 10 2 10 2"/><path d="M20 11s3-2 10-2v18c-7 0-10 2-10 2"/><path d="M20 11v20"/>',
+  health: '<circle cx="20" cy="20" r="13"/><path d="M8 20h5l2.5-5 3 9 2.5-6 1.5 2H32"/>',
+  love: '<circle cx="15.5" cy="20" r="9"/><circle cx="24.5" cy="20" r="9"/>',
+  career: '<rect x="6" y="15" width="28" height="18" rx="2.5"/><path d="M14 15v-3a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v3"/><path d="M6 23h28"/>',
+  money: '<ellipse cx="20" cy="12" rx="12" ry="5"/><path d="M8 12v16c0 2.8 5.4 5 12 5s12-2.2 12-5V12"/><path d="M8 20c0 2.8 5.4 5 12 5s12-2.2 12-5"/>',
+  creativity: '<path d="M20 8c-9 0-13 6-13 12s4 5 6 3 1-5 4-5h6c3 0 3-2 3-5s-1-5-6-5Z"/><circle cx="15" cy="17" r="1.6" fill="currentColor" stroke="none"/><circle cx="21" cy="14" r="1.6" fill="currentColor" stroke="none"/><circle cx="26" cy="18" r="1.6" fill="currentColor" stroke="none"/>'
+};
+
+var CATS = [
+  {id:'adventure', name:'Adventure & Adrenaline', ring:'var(--brass)'},
+  {id:'travel', name:'Travel & Experiences', ring:'var(--teal)'},
+  {id:'career', name:'Career & Ambition', ring:'var(--violet)'},
+  {id:'money', name:'Money & Freedom', ring:'var(--teal)'},
+  {id:'skills', name:'Skills & Mastery', ring:'var(--violet)'},
+  {id:'creativity', name:'Creativity & Culture', ring:'var(--brass)', epigraph:'What is earth without art? Just a rock.'},
+  {id:'health', name:'Body & Health', ring:'var(--teal)'},
+  {id:'love', name:'Love & Relationships', ring:'var(--brass)'}
+];
+
+var DEFAULT_ITEMS = [
+{id:'i1',cat:'adventure',text:'Go paragliding',tag:'quick'},
+{id:'i2',cat:'adventure',text:'Try wakeboarding',tag:'quick'},
+{id:'i3',cat:'adventure',text:'Do a proper racing experience — karting, a track day, or racing school',tag:'project'},
+{id:'i4',cat:'travel',text:'Travel to as many countries and regions as you can, deliberately',tag:'lifetime'},
+{id:'i5',cat:'travel',text:'Live abroad for an extended stretch, somewhere that actually feels welcoming',tag:'lifetime'},
+{id:'i6',cat:'travel',text:'Eat your way through the world’s great cuisines',tag:'lifetime'},
+{id:'i7',cat:'travel',text:'Go to Tomorrowland',tag:'project'},
+{id:'i8',cat:'travel',text:'Experience Ghent’s club and nightlife scene',tag:'project'},
+{id:'la1',cat:'travel',text:'See the Northern Lights',tag:'lifetime'},
+{id:'la2',cat:'travel',text:'Swim with whale sharks',tag:'project'},
+{id:'la3',cat:'travel',text:'Watch sunrise from a summit you hiked yourself',tag:'quick'},
+{id:'la4',cat:'travel',text:'Sleep under the aurora in a glass-roofed room',tag:'lifetime'},
+{id:'la5',cat:'travel',text:'Walk one of New Zealand’s Great Walks',tag:'project'},
+{id:'la6',cat:'travel',text:'Cruise to Antarctica',tag:'lifetime'},
+{id:'la7',cat:'travel',text:'Ride a hot air balloon over Cappadocia',tag:'project'},
+{id:'la8',cat:'travel',text:'Take a road trip with no fixed itinerary',tag:'quick'},
+{id:'la9',cat:'travel',text:'Set foot on all seven continents',tag:'lifetime'},
+{id:'la10',cat:'travel',text:'Climb a non-technical peak like Kilimanjaro',tag:'lifetime'},
+{id:'i9',cat:'skills',text:'Learn electric guitar',tag:'project'},
+{id:'i10',cat:'skills',text:'Learn to DJ',tag:'project'},
+{id:'i11',cat:'skills',text:'Get genuinely good at chess',tag:'project'},
+{id:'i12',cat:'skills',text:'Become a true, fluent reader — read widely enough to really appreciate literature',tag:'lifetime'},
+{id:'la17',cat:'skills',text:'Get conversational in a new language',tag:'project'},
+{id:'la18',cat:'skills',text:'Learn to swim properly, if you never did',tag:'project'},
+{id:'la19',cat:'skills',text:'Play one song all the way through on an instrument',tag:'project'},
+{id:'la20',cat:'skills',text:'Get a driving, sailing, or pilot’s license',tag:'lifetime'},
+{id:'la21',cat:'skills',text:'Learn basic first aid and CPR',tag:'quick'},
+{id:'la22',cat:'skills',text:'Read twelve books in a year, chosen on purpose',tag:'project'},
+{id:'i13',cat:'health',text:'Get into the best shape of your life',tag:'project'},
+{id:'la23',cat:'health',text:'Try a sport you’ve always been curious about',tag:'quick'},
+{id:'i14',cat:'love',text:'Date someone from a different country or culture',tag:'lifetime'},
+{id:'la16',cat:'love',text:'Host a dinner for people who don’t all know each other',tag:'quick'},
+{id:'i15',cat:'career',text:'Launch your own startup',tag:'lifetime'},
+{id:'la11',cat:'career',text:'Land a role at a company you genuinely admire',tag:'project'},
+{id:'la12',cat:'career',text:'Start a side project and land your first paying customer',tag:'project'},
+{id:'la13',cat:'career',text:'Build a portfolio project outside your day job',tag:'project'},
+{id:'la14',cat:'money',text:'Actually learn how index funds work',tag:'quick'},
+{id:'la15',cat:'money',text:'Build one stream of income that isn’t your main job',tag:'lifetime'},
+{id:'la24',cat:'creativity',text:'Finish something creative and show it to someone',tag:'project'},
+{id:'la25',cat:'creativity',text:'Learn a traditional craft from someone who’s done it for decades',tag:'project'},
+{id:'la26',cat:'creativity',text:'Perform in front of an audience once',tag:'quick'}
+].map(function(i){ i.done=false; i.deadline=null; return i; });
+
+var TAG_LABEL = {quick:'Instant Rewarding', project:'Big Projects', lifetime:'Long Term'};
+var TAG_ORDER = ['quick','project','lifetime'];
+var CHECK_SVG = '<svg viewBox="0 0 13 13" fill="none"><path d="M2 6.5 5 10 11 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+var RESOURCES = [
+  {cat:'travel', label:'2026 Travel Bucket List — WeRoad', url:'https://www.weroad.com/blog/the-ultimate-travel-bucket-list-for-2026'},
+  {cat:'travel', label:'Insane Adventures — The Broke Backpacker', url:'https://www.thebrokebackpacker.com/bucket-list-adventures/'},
+  {cat:'adventure', label:'Adventure Bucket List — Just Wander More', url:'https://justwandermore.com/adventure-bucket-list/'},
+  {cat:'career', label:'Ideas for Ambitious People — BestSelf', url:'https://bestself.co/blogs/articles/103-bucket-list-ideas-for-ambitious-people'},
+  {cat:'skills', label:'Personal Development Bucket List — Glimmer', url:'https://helloglimmer.com/personal-development-bucket-list/'},
+  {cat:'all', label:'680 Ideas Covering All Categories — Classpop', url:'https://www.classpop.com/magazine/bucket-list-ideas'},
+  {cat:'all', label:'553 Bucket List Ideas — Develop Good Habits', url:'https://www.developgoodhabits.com/bucket-list-ideas/'},
+  {cat:'all', label:'250 Ideas That Will Change Your Life — Science of People', url:'https://www.scienceofpeople.com/bucket-list/'}
+];
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function findCat(id){ return CATS.filter(function(c){return c.id===id;})[0]; }
+function catName(id){ var c = findCat(id); return c?c.name:'All sections'; }
+function ringForCat(id){ var c = findCat(id); return c?c.ring:'var(--muted)'; }
+
+var STORE_KEY = 'abhi-bucket-list-items-v3';
+var MODE_KEY = 'abhi-bucket-list-mode';
+var ITEMS = loadItems();
+var editMode = false;
+var revealed = {};
+
+function loadItems(){
+  try{
+    var saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if(Array.isArray(saved) && saved.length) return saved;
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+}
+function persist(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(ITEMS)); }catch(e){}
+}
+
+function todayStr(){
+  var d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function formatDeadline(iso){
+  var d = new Date(iso+'T00:00:00');
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString(undefined, {day:'numeric', month:'short', year:'numeric'});
+}
+
+function buildIndex(){
+  var nav = document.getElementById('indexRail');
+  nav.innerHTML = CATS.map(function(c, i){
+    return '<a class="index-link'+(i===0?' active':'')+'" href="#cat-'+c.id+'" data-cat="'+c.id+'" style="--ring-color:'+c.ring+'"><span class="ring"></span>'+escapeHtml(c.name)+'</a>';
+  }).join('');
+}
+
+function tagOptions(selected){
+  return TAG_ORDER.map(function(t){
+    return '<option value="'+t+'"'+(t===selected?' selected':'')+'>'+TAG_LABEL[t]+'</option>';
+  }).join('');
+}
+
+function renderEntry(it){
+  var on = !!it.done;
+  var bodyHtml;
+  if(editMode){
+    bodyHtml =
+      '<input type="text" class="edit-text" value="'+escapeHtml(it.text)+'">'+
+      '<div class="entry-meta edit-meta">'+
+        '<select class="edit-tag">'+tagOptions(it.tag)+'</select>'+
+        '<input type="date" class="edit-date" value="'+(it.deadline||'')+'" title="Optional deadline">'+
+        '<button type="button" class="del-btn" aria-label="Delete entry">×</button>'+
+      '</div>';
+  } else {
+    var deadlineHtml = '';
+    if(it.deadline){
+      var overdue = !it.done && it.deadline < todayStr();
+      deadlineHtml = '<span class="deadline'+(overdue?' overdue':'')+'">'+(overdue?'overdue — ':'by ')+escapeHtml(formatDeadline(it.deadline))+'</span>';
+    }
+    bodyHtml =
+      '<span class="entry-text">'+escapeHtml(it.text)+'</span>'+
+      '<div class="entry-meta"><span class="tag-chip '+it.tag+'"><span class="dot"></span>'+TAG_LABEL[it.tag]+'</span>'+deadlineHtml+'</div>';
+  }
+  return '<li class="entry'+(on?' done':'')+(editMode?' editing':'')+'" data-id="'+it.id+'">'+
+    (editMode ? '' : '<button class="check" aria-pressed="'+on+'" aria-label="Mark done">'+CHECK_SVG+'</button>')+
+    '<div class="entry-body">'+bodyHtml+'</div>'+
+    '</li>';
+}
+
+function buildJournal(){
+  var main = document.getElementById('journal');
+  var html = '';
+  CATS.forEach(function(cat){
+    var items = ITEMS.filter(function(i){return i.cat===cat.id;});
+    var doneCount = items.filter(function(i){return i.done;}).length;
+    html += '<section class="cat-section'+(revealed[cat.id]?' in-view':'')+'" id="cat-'+cat.id+'" data-cat="'+cat.id+'" style="--ring-color:'+cat.ring+'">';
+    html += '<div class="cat-head"><span class="stamp">'+
+      '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+ICONS[cat.id]+'</svg>'+
+      '</span><h2>'+escapeHtml(cat.name)+'</h2>'+
+      '<span class="cat-count mono" data-count-for="'+cat.id+'">'+doneCount+'/'+items.length+'</span></div>';
+    if(cat.epigraph){
+      html += '<p class="cat-epigraph">“'+escapeHtml(cat.epigraph)+'”</p>';
+    }
+    html += '<ul class="entries">'+items.map(renderEntry).join('')+'</ul>';
+    if(editMode){
+      html += '<form class="add-row" data-cat="'+cat.id+'">'+
+        '<input type="text" class="add-text" placeholder="Add to '+escapeHtml(cat.name)+'…" required>'+
+        '<select class="add-tag">'+tagOptions('project')+'</select>'+
+        '<input type="date" class="add-date" title="Optional deadline">'+
+        '<button type="submit">Add</button>'+
+        '</form>';
+    }
+    html += '</section>';
+  });
+
+  html += '<section class="resources"><h2>Dig deeper</h2>'+
+    '<p class="sub">Real idea banks, in case a section deserves more than a line in a journal.</p>'+
+    '<div class="resource-grid">'+
+    RESOURCES.map(function(r){
+      return '<a class="resource-card" href="'+r.url+'" target="_blank" rel="noopener" style="--ring-color:'+ringForCat(r.cat)+'">'+
+        '<span class="r-cat">'+escapeHtml(r.cat==='all'?'all sections':catName(r.cat))+'</span>'+escapeHtml(r.label)+'</a>';
+    }).join('')+
+    '</div></section>';
+
+  main.innerHTML = html;
+  attachObservers();
+}
+
+function updateGauge(){
+  var totalDone = ITEMS.filter(function(i){return i.done;}).length;
+  var total = ITEMS.length;
+  document.getElementById('doneCount').textContent = totalDone+' / '+total;
+  var frac = total ? totalDone/total : 0;
+  var arc = document.getElementById('gaugeArc');
+  var circumference = 132; // approx length of the drawn arc path
+  arc.setAttribute('stroke-dashoffset', String(circumference - circumference*frac));
+}
+
+function findItem(id){ return ITEMS.filter(function(i){return i.id===id;})[0]; }
+
+function rerender(){ buildJournal(); updateGauge(); persist(); }
+
+function toggleDone(id){
+  var it = findItem(id); if(!it) return;
+  it.done = !it.done;
+  rerender();
+}
+function deleteItem(id){
+  ITEMS = ITEMS.filter(function(i){return i.id!==id;});
+  rerender();
+}
+function addItem(cat, text, tag, deadline){
+  var id = 'u'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  ITEMS.push({id:id, cat:cat, text:text, tag:tag||'project', done:false, deadline:deadline||null});
+  rerender();
+}
+function setText(id, text){ var it=findItem(id); if(it && text.trim()){ it.text=text.trim(); rerender(); } }
+function setTag(id, tag){ var it=findItem(id); if(it){ it.tag=tag; rerender(); } }
+function setDeadline(id, iso){ var it=findItem(id); if(it){ it.deadline = iso||null; rerender(); } }
+
+function wireEvents(){
+  var root = document.getElementById('journal');
+
+  root.addEventListener('click', function(e){
+    var check = e.target.closest('.check');
+    if(check){ var li = check.closest('.entry'); if(li) toggleDone(li.getAttribute('data-id')); return; }
+    var del = e.target.closest('.del-btn');
+    if(del){ var li2 = del.closest('.entry'); if(li2) deleteItem(li2.getAttribute('data-id')); return; }
+  });
+
+  root.addEventListener('change', function(e){
+    var li = e.target.closest('.entry');
+    if(li){
+      var id = li.getAttribute('data-id');
+      if(e.target.classList.contains('edit-text')) setText(id, e.target.value);
+      else if(e.target.classList.contains('edit-tag')) setTag(id, e.target.value);
+      else if(e.target.classList.contains('edit-date')) setDeadline(id, e.target.value);
+      return;
+    }
+  });
+
+  root.addEventListener('submit', function(e){
+    var form = e.target.closest('.add-row');
+    if(!form) return;
+    e.preventDefault();
+    var cat = form.getAttribute('data-cat');
+    var text = form.querySelector('.add-text').value.trim();
+    var tag = form.querySelector('.add-tag').value;
+    var deadline = form.querySelector('.add-date').value;
+    if(!text) return;
+    addItem(cat, text, tag, deadline);
+  });
+
+  document.getElementById('editToggle').addEventListener('click', function(){
+    editMode = !editMode;
+    this.textContent = editMode ? 'done editing' : 'edit list';
+    this.classList.toggle('active', editMode);
+    buildJournal();
+  });
+}
+
+function applyMode(mode){
+  if(mode === 'dark'){
+    document.documentElement.setAttribute('data-mode', 'dark');
+  } else {
+    document.documentElement.removeAttribute('data-mode');
+  }
+  document.getElementById('modeLabel').textContent = mode === 'dark' ? 'day mode' : 'night mode';
+  document.getElementById('modeToggle').classList.toggle('active', mode === 'dark');
+  var sun = document.getElementById('modeIconSun');
+  if(sun) sun.setAttribute('fill', mode === 'dark' ? 'currentColor' : 'none');
+}
+
+function wireMode(){
+  var saved = 'light';
+  try{ saved = localStorage.getItem(MODE_KEY) || 'light'; }catch(e){}
+  applyMode(saved);
+  document.getElementById('modeToggle').addEventListener('click', function(){
+    var current = document.documentElement.getAttribute('data-mode') === 'dark' ? 'dark' : 'light';
+    var next = current === 'dark' ? 'light' : 'dark';
+    applyMode(next);
+    try{ localStorage.setItem(MODE_KEY, next); }catch(e){}
+  });
+}
+
+function attachObservers(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('.index-link'));
+  var sections = Array.prototype.slice.call(document.querySelectorAll('.cat-section'));
+  if(!('IntersectionObserver' in window) || !sections.length) return;
+
+  var revealObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        entry.target.classList.add('in-view');
+        revealed[entry.target.getAttribute('data-cat')] = true;
+        revealObs.unobserve(entry.target);
+      }
+    });
+  }, {threshold:0.15});
+  sections.forEach(function(s){ if(!revealed[s.getAttribute('data-cat')]) revealObs.observe(s); });
+
+  var spyObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        var id = entry.target.getAttribute('data-cat');
+        links.forEach(function(l){ l.classList.toggle('active', l.getAttribute('data-cat')===id); });
+      }
+    });
+  }, {rootMargin:'-20% 0px -70% 0px', threshold:0});
+  sections.forEach(function(s){ spyObs.observe(s); });
+}
+
+function wireScrollProgress(){
+  var bar = document.getElementById('scrollProgress');
+  var ticking = false;
+  function update(){
+    var h = document.documentElement;
+    var scrollable = h.scrollHeight - h.clientHeight;
+    var pct = scrollable > 0 ? (h.scrollTop / scrollable) * 100 : 0;
+    bar.style.width = pct + '%';
+    ticking = false;
+  }
+  document.addEventListener('scroll', function(){
+    if(!ticking){ requestAnimationFrame(update); ticking = true; }
+  }, {passive:true});
+  update();
+}
+
+buildIndex();
+buildJournal();
+updateGauge();
+wireEvents();
+wireMode();
+wireScrollProgress();
+})();
+</script>
+
+</body></html>
